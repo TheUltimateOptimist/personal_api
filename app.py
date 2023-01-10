@@ -167,6 +167,27 @@ def get_past_topic_id(steps_back: int):
     cursor.close()
     return str(result)
 
+@app.route("/worktracker/sessions/count/today")
+def count_todays_sessions():
+    db = get_conn(db="TheUltimateOptim$worktracker")
+    cursor = db.cursor()
+    import datetime
+    now = datetime.datetime.fromtimestamp(time.time())
+    start = datetime.datetime(now.year, now.month, now.day).timestamp()
+    cursor.execute(f"select count(*) from sessions left join topics on topics.id = topic_id where start >= {start} order by sessions.id desc")
+    result = cursor.fetchall()[0][0]
+    cursor.close()
+    return str(result)
+
+@app.route("/worktracker/sessions/count/<int:topic_id>")
+def count_topic_sessions(topic_id: int):
+    db = get_conn(db="TheUltimateOptim$worktracker")
+    cursor = db.cursor()
+    cursor.execute(f"select count(*) from sessions where topic_id = {topic_id} or topic_id in (SELECT child from hierarchy where parent = {topic_id})")
+    result = cursor.fetchall()[0][0]
+    cursor.close()
+    return str(result)
+
 @app.route("/worktracker/sessions/last/<int:steps_back>")
 def get_past_sessions(steps_back: int):
     db = get_conn(db="TheUltimateOptim$worktracker")

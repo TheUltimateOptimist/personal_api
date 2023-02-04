@@ -6,6 +6,9 @@ import time
 app = Flask(__name__)
 
 import mysql.connector
+import logging
+
+logging.basicConfig(filename = 'tracker_logs.log', level=logging.INFO, encoding="utf-8")
 
 def get_conn(db="TheUltimateOptim$tracker"):
     return mysql.connector.connect(
@@ -167,18 +170,6 @@ def get_past_topic_id(steps_back: int):
     cursor.close()
     return str(result)
 
-@app.route("/worktracker/sessions/count/today")
-def count_todays_sessions():
-    db = get_conn(db="TheUltimateOptim$worktracker")
-    cursor = db.cursor()
-    import datetime
-    now = datetime.datetime.fromtimestamp(time.time())
-    start = datetime.datetime(now.year, now.month, now.day).timestamp()
-    cursor.execute(f"select count(*) from sessions left join topics on topics.id = topic_id where start >= {start} order by sessions.id desc")
-    result = cursor.fetchall()[0][0]
-    cursor.close()
-    return str(result)
-
 @app.route("/worktracker/sessions/count/<int:topic_id>")
 def count_topic_sessions(topic_id: int):
     db = get_conn(db="TheUltimateOptim$worktracker")
@@ -197,17 +188,23 @@ def get_past_sessions(steps_back: int):
     cursor.close()
     return jsonify(result)
 
-@app.route("/worktracker/sessions/today")
-def get_todays_sessions():
+@app.route("/worktracker/sessions/<float:fr>/<float:to>")
+def get_sessions(fr: float, to: float):
     db = get_conn(db="TheUltimateOptim$worktracker")
     cursor = db.cursor()
-    import datetime
-    now = datetime.datetime.fromtimestamp(time.time())
-    start = datetime.datetime(now.year, now.month, now.day).timestamp()
-    cursor.execute(f"select topic_id, name, start, end from sessions left join topics on topics.id = topic_id where start >= {start} order by sessions.id desc")
+    cursor.execute(f"select topic_id, name, start, end from sessions left join topics on topics.id = topic_id where start >= {fr} and start < {to} order by sessions.id desc")
     result = cursor.fetchall()
     cursor.close()
     return jsonify(result)
+
+@app.route("/worktracker/sessions/count/<float:fr>/<float:to>")
+def get_number_of_sessions(fr: float, to: float):
+    db = get_conn(db="TheUltimateOptim$worktracker")
+    cursor = db.cursor()
+    cursor.execute(f"select count(*) from sessions where start >= {fr} and start < {to} order by sessions.id desc")
+    result = cursor.fetchall()[0][0]
+    cursor.close()
+    return str(result)
 
 if __name__ == "__main__":
     app.run()

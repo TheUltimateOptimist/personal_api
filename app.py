@@ -188,6 +188,15 @@ def get_past_sessions(steps_back: int):
     cursor.close()
     return jsonify(result)
 
+@app.route("/worktracker/sessions/<int:topic_id>")
+def get_sessions_of_topic(topic_id: int):
+    db = get_conn(db="TheUltimateOptim$worktracker")
+    cursor = db.cursor()
+    cursor.execute(f"select topic_id, name, start, end from sessions left join topics on topics.id = topic_id where sessions.topic_id = {topic_id} or sessions.topic_id in (SELECT child from hierarchy where parent = {topic_id}) order by sessions.id desc")
+    result = cursor.fetchall()
+    cursor.close()
+    return jsonify(result)
+
 @app.route("/worktracker/sessions/<float:fr>/<float:to>")
 def get_sessions(fr: float, to: float):
     db = get_conn(db="TheUltimateOptim$worktracker")
